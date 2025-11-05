@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ClipHub - Category</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Baloo+Bhai+2:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+
+</head>
+<body>
+
+<header class="topbar">
+  <div class="wrap">
+    <div class="brand"><span class="dot"></span><h1>ClipHub</h1></div>
+    <nav class="primary-nav">
+      <ul class="nav-list">
+        <li><a href="category.html?cat=Trending">Trending</a></li>
+        <li><a href="category.html?cat=Vlogs">Vlogs</a></li>
+        <li><a href="category.html?cat=Tutorials">Tutorials</a></li>
+        <li><a href="category.html?cat=Music">Music</a></li>
+      </ul>
+    </nav>
+  </div>
+</header>
+
+<section class="wrap section">
+  <div class="search">
+    <input type="text" id="searchInput" placeholder="Search...">
+    <button id="searchBtn">🔍</button>
+  </div>
+</section>
+
+<section class="wrap section">
+  <h2 class="bar-title" id="catName">Category</h2>
+</section>
+
+<section class="wrap section">
+  <div class="grid" id="catGrid"></div>
+</section>
+
+<footer class="footer">
+  <div class="wrap">
+    <p class="muted small">All Rights Reserved</p>
+  </div>
+</footer>
+
+<button class="to-top">↑</button>
+
+<template id="cardTpl">
+<article class="card">
+  <div class="thumb">
+    <a href="#"><img loading="lazy" src="" alt=""></a>
+    <span class="badge">▶ <b class="dur">00:00</b></span>
+  </div>
+  <a class="title" href="#">Clip</a>
+</article>
+</template>
+
+<script src="main.js" defer></script>
+</body>
+</html>
