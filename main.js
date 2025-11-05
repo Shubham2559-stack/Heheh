@@ -27,77 +27,94 @@ const TITLES = [
   "Tea Making Slow Motion","Roadside Snack","Library Study Ambience"
 ];
 
-const DATA=[];
-const CAT=["Trending","Vlogs","Tutorials","Music"];
+const DATA = [];
+const CAT = ["Trending","Vlogs","Tutorials","Music"];
 
 for(let i=0;i<51;i++){
   DATA.push({
-    id:"clip-"+String(i+1).padStart(2,"0"),
-    title:TITLES[i],
-    dur:["00:59","01:14","02:08","03:27","04:12","05:44","06:10","07:39"][i%8],
-    cat:CAT[i%4],
-    thumb:`https://picsum.photos/seed/clip${i}/400/225`,
-    yt:`https://www.youtube.com/embed/${YT_IDS[i]}`,
-    desc:"Description: "+TITLES[i]
+    id: "clip-"+String(i+1).padStart(2,"0"),
+    title: TITLES[i],
+    dur: ["00:59","01:14","02:08","03:27","04:12","05:44","06:10","07:39"][i%8],
+    cat: CAT[i%4],
+    thumb: `https://picsum.photos/seed/clip${i}/400/225`,
+    yt: `https://www.youtube.com/embed/${YT_IDS[i]}`,
+    desc: "Description: " + TITLES[i]
   });
 }
 
-/* Helper */
-const $=id=>document.getElementById(id);
-function shuffle(a){return a.slice().sort(()=>Math.random()-0.5);}
+/* ---------- Helpers ---------- */
+const $ = id => document.getElementById(id);
+const shuffle = arr => arr.slice().sort(()=>Math.random()-0.5);
 
-/* Render Cards */
-function renderCards(grid,list){
-  const box=$(grid),tpl=$("cardTpl");
+/* ---------- Render Cards ---------- */
+function renderCards(grid, list){
+  const box = $(grid), tpl = $("cardTpl");
   if(!box || !tpl) return;
-  box.innerHTML="";
+  box.innerHTML = "";
   list.forEach(v=>{
-    const n=tpl.content.cloneNode(true);
-    const img=n.querySelector("img");
-    img.src=v.thumb;
-    img.onload=()=>img.classList.add("loaded");
-    n.querySelector(".dur").textContent=v.dur;
-    n.querySelector(".title").textContent=v.title;
-    n.querySelector(".title").href=`watch.html?id=${v.id}`;
-    n.querySelector(".thumb a").href=`watch.html?id=${v.id}`;
+    const n = tpl.content.cloneNode(true);
+    const img = n.querySelector("img");
+    img.src = v.thumb;
+    img.onload = () => img.classList.add("loaded");
+    n.querySelector(".dur").textContent = v.dur;
+    n.querySelector(".title").textContent = v.title;
+    n.querySelector(".title").href = `watch.html?id=${v.id}`;
+    n.querySelector(".thumb a").href = `watch.html?id=${v.id}`;
     box.appendChild(n);
   });
 }
 
-/* Home */
+/* ---------- HOME PAGE ---------- */
 if($("latestGrid")) renderCards("latestGrid", DATA.slice(0,12));
 if($("randomGrid") && !location.pathname.includes("watch"))
   renderCards("randomGrid", shuffle(DATA).slice(0,12));
 
-/* Category */
+/* ---------- CATEGORY PAGE ---------- */
 if(location.pathname.includes("category.html")){
-  const c=(new URLSearchParams(location.search)).get("cat");
-  $("catName").textContent=c;
+  const c = new URLSearchParams(location.search).get("cat");
+  $("catName").textContent = c;
   renderCards("catGrid", DATA.filter(v=>v.cat===c));
 }
 
-/* Watch Page */
+/* ---------- WATCH PAGE ---------- */
 if(location.pathname.includes("watch.html")){
-  const id=new URLSearchParams(location.search).get("id");
-  const v=DATA.find(x=>x.id===id);
+  const id = new URLSearchParams(location.search).get("id");
+  const v = DATA.find(x=>x.id===id);
 
-  $("videoTitle").textContent=v.title;
-  $("videoDesc").textContent=v.desc;
-
-  $("mainFrame").src=v.yt.replace("www.youtube.com","www.youtube-nocookie.com");
+  $("videoTitle").textContent = v.title;
+  $("videoDesc").textContent = v.desc;
+  $("mainFrame").src = v.yt.replace("www.youtube.com","www.youtube-nocookie.com");
 
   renderCards("relatedGrid", shuffle(DATA.filter(x=>x.cat===v.cat && x.id!==v.id)).slice(0,12));
   renderCards("randomGrid", shuffle(DATA).slice(0,12));
 }
 
-/* Search */
+/* ---------- SEARCH WITH URL UPDATE ---------- */
 function applySearch(){
-  const q=$("searchInput")?.value?.toLowerCase().trim();
-  if(!q){renderCards("latestGrid",DATA.slice(0,12));return;}
-  renderCards("latestGrid",DATA.filter(v=>v.title.toLowerCase().includes(q)));
-}
-$("searchBtn")?.addEventListener("click",applySearch);
-$("searchInput")?.addEventListener("keyup",e=>{if(e.key==="Enter")applySearch();});
+  const q = $("searchInput")?.value?.toLowerCase().trim() || "";
 
-/* To Top */
+  const url = new URL(location);
+  if(q) url.searchParams.set("search", q);
+  else url.searchParams.delete("search");
+  history.replaceState({}, "", url);
+
+  const results = q ? DATA.filter(v=>v.title.toLowerCase().includes(q)) : DATA.slice(0,12);
+
+  if($("latestGrid")) renderCards("latestGrid", results);
+  if($("catGrid")){
+    const c = new URLSearchParams(location.search).get("cat");
+    renderCards("catGrid", results.filter(v=>v.cat===c));
+  }
+}
+
+$("searchBtn")?.addEventListener("click", applySearch);
+$("searchInput")?.addEventListener("keyup", e=>{ if(e.key==="Enter") applySearch(); });
+
+const initialSearch = new URLSearchParams(location.search).get("search");
+if(initialSearch){
+  $("searchInput").value = initialSearch;
+  applySearch();
+}
+
+/* ---------- TO TOP BUTTON ---------- */
 document.querySelector(".to-top")?.addEventListener("click",()=>window.scrollTo({top:0,behavior:"smooth"}));
