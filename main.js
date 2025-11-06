@@ -9,7 +9,7 @@ let DATA = [];
 const $ = id => document.getElementById(id);
 const shuffle = arr => arr.slice().sort(() => Math.random() - 0.5);
 
-/* Tiny CSV parser that respects quoted fields (commas/newlines inside quotes) */
+/* ====== CSV PARSER ====== */
 function parseCSV(text){
   const rows = [];
   let i = 0, cur = [], val = "", inQ = false;
@@ -19,7 +19,6 @@ function parseCSV(text){
 
   while(i < text.length){
     const ch = text[i];
-
     if(inQ){
       if(ch === '"'){
         if(text[i+1] === '"'){ val += '"'; i += 2; continue; }
@@ -27,19 +26,17 @@ function parseCSV(text){
       }
       val += ch; i++; continue;
     }
-
     if(ch === '"'){ inQ = true; i++; continue; }
     if(ch === ','){ push(); i++; continue; }
     if(ch === '\r'){ i++; continue; }
     if(ch === '\n'){ endRow(); i++; continue; }
-
     val += ch; i++;
   }
   if(val.length || cur.length) endRow();
   return rows;
 }
 
-/* ====== Load from Google Sheet ====== */
+/* ====== Load Sheet ====== */
 function loadSheet(){
   fetch(SHEET_URL)
     .then(r => r.text())
@@ -78,15 +75,11 @@ function loadSheet(){
 }
 loadSheet();
 
-/* ====== Card Renderer with interval Ads ====== */
+/* ====== Render Cards (no ads) ====== */
 function renderCards(grid, list){
   const box = $(grid), tpl = $("cardTpl");
   if(!box || !tpl) return;
-
   box.innerHTML = "";
-
-  const isMobile = window.innerWidth < 768;
-  const interval = isMobile ? 6 : 8;
 
   list.forEach((v, i) => {
     const node = tpl.content.cloneNode(true);
@@ -106,29 +99,10 @@ function renderCards(grid, list){
     node.querySelector(".thumb a").href  = `watch.html?id=${encodeURIComponent(v.id)}`;
 
     box.appendChild(node);
-
-    /* ✅ Insert Adsterra Banner */
-    if((i+1) % interval === 0){
-      const ad = document.createElement("div");
-      ad.className = "ad-wide";
-      ad.innerHTML = `
-<script type="text/javascript">
-	atOptions = {
-		'key' : 'f11a5a4eeee49e0a2e20cba1d958ddb9',
-		'format' : 'iframe',
-		'height' : 90,
-		'width' : 728,
-		'params' : {}
-	};
-</script>
-<script type="text/javascript" src="https://revealedcarry.com/f11a5a4eeee49e0a2e20cba1d958ddb9/invoke.js"></script>
-      `;
-      box.appendChild(ad);
-    }
   });
 }
 
-/* ====== Page Init ====== */
+/* ====== Init Pages ====== */
 function initializeSite(){
 
   if($("latestGrid")) renderCards("latestGrid", DATA.slice(0, 12));
@@ -157,18 +131,30 @@ function initializeSite(){
     const src = v.yt.trim();
     const safe = encodeURI(src);
 
+    /* ✅ Video Playback Fix */
     if(/\.(mp4|webm|ogg)(\?.*)?$/i.test(safe)){
       box.innerHTML = `
-        <video controls playsinline preload="metadata"
-               poster="${v.thumb ? encodeURI(v.thumb) : ""}"
-               style="width:100%;height:100%;display:block;object-fit:contain;background:#000;border:0">
+        <video
+          controls
+          playsinline
+          preload="metadata"
+          poster="${v.thumb ? encodeURI(v.thumb) : ""}"
+          style="width:100%;height:100%;display:block;object-fit:contain;background:#000;border:0"
+          referrerpolicy="no-referrer"
+          crossorigin="anonymous"
+        >
           <source src="${safe}" type="video/mp4">
         </video>
       `;
     } else {
       const iframeSrc = safe.replace("www.youtube.com","www.youtube-nocookie.com");
       box.innerHTML = `
-        <iframe src="${iframeSrc}" allowfullscreen style="width:100%;height:100%;border:0;background:#000"></iframe>
+        <iframe
+          src="${iframeSrc}"
+          referrerpolicy="no-referrer"
+          allowfullscreen
+          style="width:100%;height:100%;border:0;background:#000"
+        ></iframe>
       `;
     }
 
