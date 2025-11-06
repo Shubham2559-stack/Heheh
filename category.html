@@ -13,30 +13,15 @@
 
 <header class="topbar">
   <div class="wrap">
-    <div class="brand"><span class="dot"></span><h1>ClipHub</h1></div>
-    <nav class="primary-nav">
-      <ul class="nav-list">
-        <li><a href="category.html?cat=Trending">Trending</a></li>
-        <li><a href="category.html?cat=Vlogs">Vlogs</a></li>
-        <li><a href="category.html?cat=Tutorials">Tutorials</a></li>
-        <li><a href="category.html?cat=Music">Music</a></li>
-      </ul>
-    </nav>
+    <div class="brand">
+      <span class="dot"></span>
+      <h1>ClipHub</h1>
+    </div>
   </div>
 </header>
 
 <section class="wrap section">
-  <div class="search">
-    <input type="text" id="searchInput" placeholder="Search...">
-    <button id="searchBtn">🔍</button>
-  </div>
-</section>
-
-<section class="wrap section">
-  <h2 class="bar-title" id="catName">Category</h2>
-</section>
-
-<section class="wrap section">
+  <h2 class="bar-title" id="catName"></h2>
   <div class="grid" id="catGrid"></div>
 </section>
 
@@ -48,13 +33,14 @@
 
 <button class="to-top">↑</button>
 
+<!-- CARD TEMPLATE -->
 <template id="cardTpl">
 <article class="card">
   <div class="thumb">
-    <a href="#"><img loading="lazy" src="" alt=""></a>
-    <span class="badge">▶ <b class="dur">00:00</b></span>
+    <a href="#"><img loading="lazy" referrerpolicy="no-referrer" src="" alt=""></a>
+    <span class="badge"><b class="dur"></b></span>
   </div>
-  <a class="title" href="#">Clip</a>
+  <a class="title" href="#"></a>
 </article>
 </template>
 
