@@ -22,7 +22,7 @@ function parseCSV(text){
 
     if(inQ){
       if(ch === '"'){
-        if(text[i+1] === '"'){ val += '"'; i += 2; continue; } // escaped quote
+        if(text[i+1] === '"'){ val += '"'; i += 2; continue; }
         inQ = false; i++; continue;
       }
       val += ch; i++; continue;
@@ -35,7 +35,6 @@ function parseCSV(text){
 
     val += ch; i++;
   }
-  // last value
   if(val.length || cur.length) endRow();
   return rows;
 }
@@ -48,7 +47,6 @@ function loadSheet(){
       const rows = parseCSV(csv);
       if(!rows.length) return;
 
-      // First row = headers: title, thumb, yt, dur, cat, desc
       const hdr = rows[0].map(h => (h||"").trim().toLowerCase());
       const idx = name => hdr.indexOf(name);
 
@@ -69,13 +67,12 @@ function loadSheet(){
         const id    = title.toLowerCase().replace(/\s+/g,"-").replace(/[^a-z0-9\-]/g,"");
 
         return { id, title, thumb, yt, dur, cat, desc };
-      }).filter(v => v.yt); // must have a playable link
+      }).filter(v => v.yt);
 
       initializeSite();
     })
     .catch(err => {
       console.error("Sheet load error:", err);
-      // Fallback: empty DATA; still init so page doesn't break
       initializeSite();
     });
 }
@@ -89,12 +86,11 @@ function renderCards(grid, list){
   box.innerHTML = "";
 
   const isMobile = window.innerWidth < 768;
-  const interval = isMobile ? 6 : 8; // Mobile=6, Desktop=8
+  const interval = isMobile ? 6 : 8;
 
   list.forEach((v, i) => {
     const node = tpl.content.cloneNode(true);
 
-    // Image
     const img = node.querySelector("img");
     if(img){
       img.referrerPolicy = "no-referrer";
@@ -104,7 +100,6 @@ function renderCards(grid, list){
       };
     }
 
-    // Text + Links
     node.querySelector(".dur").textContent = v.dur || "00:00";
     node.querySelector(".title").textContent = v.title || "Untitled";
     node.querySelector(".title").href = `watch.html?id=${encodeURIComponent(v.id)}`;
@@ -112,100 +107,89 @@ function renderCards(grid, list){
 
     box.appendChild(node);
 
-    // Insert full-width ad after N items
+    /* ✅ Insert Adsterra Banner */
     if((i+1) % interval === 0){
       const ad = document.createElement("div");
       ad.className = "ad-wide";
-      ad.textContent = "AD SPACE";
+      ad.innerHTML = `
+<script type="text/javascript">
+	atOptions = {
+		'key' : 'f11a5a4eeee49e0a2e20cba1d958ddb9',
+		'format' : 'iframe',
+		'height' : 90,
+		'width' : 728,
+		'params' : {}
+	};
+</script>
+<script type="text/javascript" src="https://revealedcarry.com/f11a5a4eeee49e0a2e20cba1d958ddb9/invoke.js"></script>
+      `;
       box.appendChild(ad);
     }
   });
 }
 
-/* ====== Page Init (after DATA ready) ====== */
+/* ====== Page Init ====== */
 function initializeSite(){
 
-  /* HOME */
   if($("latestGrid")) renderCards("latestGrid", DATA.slice(0, 12));
   if($("randomGrid") && !location.pathname.includes("watch"))
     renderCards("randomGrid", shuffle(DATA).slice(0, 12));
 
-  /* CATEGORY */
   if(location.pathname.includes("category.html")){
     const c = new URLSearchParams(location.search).get("cat") || "";
     $("catName").textContent = c;
     renderCards("catGrid", DATA.filter(v => (v.cat || "").toLowerCase() === c.toLowerCase()));
   }
 
-  /* WATCH */
   if(location.pathname.includes("watch.html")){
     const id = new URLSearchParams(location.search).get("id");
     const v  = DATA.find(x => x.id === id);
 
     if(!v){
-      if($("videoTitle")) $("videoTitle").textContent = "Not found";
-      if($("videoDesc"))  $("videoDesc").textContent  = "";
-      const pb = document.getElementById("playerBox");
-      if(pb) pb.innerHTML = `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:#000;border:0">Not Found</div>`;
+      $("playerBox").innerHTML = "Not Found";
       return;
     }
 
-    if($("videoTitle")) $("videoTitle").textContent = v.title || "Untitled";
-    if($("videoDesc"))  $("videoDesc").textContent  = v.desc || "";
+    $("videoTitle").textContent = v.title;
+    $("videoDesc").textContent  = v.desc;
 
-    const box = document.getElementById("playerBox");
-    if(box){
-      const src = (v.yt || "").trim();
-      const safe = encodeURI(src);
+    const box = $("playerBox");
+    const src = v.yt.trim();
+    const safe = encodeURI(src);
 
-      // If direct file (mp4/webm/ogg) → native <video>, else <iframe>
-      if(/\.(mp4|webm|ogg)(\?.*)?$/i.test(safe)){
-        box.innerHTML = `
-          <video controls playsinline preload="metadata" poster="${v.thumb ? encodeURI(v.thumb) : ""}"
-                 style="width:100%;height:100%;display:block;object-fit:contain;background:#000;border:0">
-            <source src="${safe}" type="video/mp4">
-          </video>
-        `;
-      } else {
-        const iframeSrc = safe.replace("www.youtube.com","www.youtube-nocookie.com");
-        box.innerHTML = `
-          <iframe
-            src="${iframeSrc}"
-            referrerpolicy="no-referrer"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-            allowfullscreen
-            style="width:100%;height:100%;border:0;display:block;background:#000">
-          </iframe>
-        `;
-      }
+    if(/\.(mp4|webm|ogg)(\?.*)?$/i.test(safe)){
+      box.innerHTML = `
+        <video controls playsinline preload="metadata"
+               poster="${v.thumb ? encodeURI(v.thumb) : ""}"
+               style="width:100%;height:100%;display:block;object-fit:contain;background:#000;border:0">
+          <source src="${safe}" type="video/mp4">
+        </video>
+      `;
+    } else {
+      const iframeSrc = safe.replace("www.youtube.com","www.youtube-nocookie.com");
+      box.innerHTML = `
+        <iframe src="${iframeSrc}" allowfullscreen style="width:100%;height:100%;border:0;background:#000"></iframe>
+      `;
     }
 
-    // Grids
     renderCards("relatedGrid", shuffle(DATA.filter(x => x.cat === v.cat && x.id !== v.id)).slice(0, 12));
-    renderCards("randomGrid",  shuffle(DATA).slice(0, 12));
+    renderCards("randomGrid", shuffle(DATA).slice(0, 12));
   }
 
-  // Restore search if present in URL
   const initialQ = new URLSearchParams(location.search).get("search");
-  if(initialQ && $("searchInput")){
+  if(initialQ){
     $("searchInput").value = initialQ;
-    applySearch(); // will re-render latestGrid/catGrid with filtered results
+    applySearch();
   }
 }
 
-/* ====== SEARCH with URL update ====== */
+/* ====== SEARCH ====== */
 function applySearch(){
   const q = $("searchInput")?.value?.toLowerCase().trim() || "";
-
   const url = new URL(location);
-  if(q) url.searchParams.set("search", q);
-  else url.searchParams.delete("search");
+  q ? url.searchParams.set("search", q) : url.searchParams.delete("search");
   history.replaceState({}, "", url);
-
-  const results = q
-    ? DATA.filter(v => (v.title || "").toLowerCase().includes(q))
-    : DATA.slice(0, 12);
-
+  const results = q ? DATA.filter(v => (v.title || "").toLowerCase().includes(q)) : DATA.slice(0, 12);
   if($("latestGrid")) renderCards("latestGrid", results);
   if($("catGrid")){
     const c = new URLSearchParams(location.search).get("cat") || "";
@@ -216,7 +200,6 @@ function applySearch(){
 $("searchBtn")?.addEventListener("click", applySearch);
 $("searchInput")?.addEventListener("keyup", e => { if(e.key === "Enter") applySearch(); });
 
-/* ====== To-Top ====== */
 document.querySelector(".to-top")?.addEventListener("click", () =>
   window.scrollTo({ top: 0, behavior: "smooth" })
 );
