@@ -1,95 +1,199 @@
-/* ---------- 51 UNIQUE POSTS DATA ---------- */
+/* ====== CONFIG: Google Sheet (public CSV) ====== */
+const SHEET_KEY = "1o99o63xiUYuUcziIVb75tQBaNUXp3os-Q8FqBQdqbVQ";
+const SHEET_URL = `https://docs.google.com/spreadsheets/d/${SHEET_KEY}/gviz/tq?tqx=out:csv`;
 
-const YT_IDS = [
-  "aqz-KE-bpKQ","dQw4w9WgXcQ","V-_O7nl0Ii0","Zi_XLOBDo_Y","Sagg08DrO5U","K5zm1w7sOYU","iik25wqIuFo",
-  "LXb3EKWsInQ","kXYi_JCYtU","hTWKbfoikeg","fJ9rUzIMcZQ","hY7m5jjJ9mM","M7FIvfx5J10","gEPmA3USJdI",
-  "ktvTqknDobU","2vjPBrBU-TM","e-ORhEE9VVg","RgKAFK5djSk","tAGnKpE4NCI","JGwWNGJdvx8","hLQl3WQQoQ0",
-  "LW5Yk1G10hY","uxpDa-c-4Mc","CFWX0hWCbng","UceaB4D0jpo","nYh-n7EOtMA","oHg5SJYRHA0","pXRviuL6vMY",
-  "3JWTaaS7LdU","2Vv-BfVoq4g","OpQFFLBMEPI","4NRXx6U8ABQ","ScNNfyq3d_w","TCQwZ6CPN3Y","6Ejga4kJUts",
-  "uelHwf8o7_U","ktYekrBxo1o","lp-EO5I60KA","hsm4poTWjMs","kTJczUoc26U","NOubzHCUt48","mWRsgZuwf_8",
-  "e-2xg2TSAQc","vbwy6B5Fa0M","VY1eFxgRR-k","TyHvyGVs42U","e80BbX05D7Y","9bZkp7q19f0","l9nh1l8ZIJQ",
-  "7wtfhZwyrcc","2vjPBrBU-TM"
-];
+/* ====== State ====== */
+let DATA = [];
 
-const TITLES = [
-  "Epic Travel Vlog","City Street Walk","Morning Nature River","Cinematic Clouds Clip",
-  "Food Making Clip","Cute Animal Moment","Amazing Waterfall","Village Road Ride",
-  "Guitar Melody Clip","Dance Performance","Cooking Lesson","DIY Life Hack Idea",
-  "Train Window View","Rainy Ambience","Highway Road Trip","Night Sky Stars",
-  "Mountain Sunrise","Slow Motion Water","Birds Flying Shot","Temple Bells Sound",
-  "Ocean Waves HD","Forest Wind Relax","Coffee Shop Ambience","Study Music Clip",
-  "Sunset Aesthetic","Cute Dog Clip","Funny Cat Clip","Evening Tree Shadows",
-  "Calm River Flow","Street Photography","Bike Riding POV","Drone City View",
-  "Beach Walk Travel","Bird Nest Shot","Bridge Time-lapse","Foggy Morning",
-  "Temple Stairs","Lake Reflection","Flower Garden Tour","Hill Walk Path",
-  "Boat Floating Clip","Street Vendor Food","Friends Fun Moment","Night Drive POV",
-  "Relaxing Nature Sound","Rain on Window","Photography BTS","Village Market Walk",
-  "Tea Making Slow Motion","Roadside Snack","Library Study Ambience"
-];
+/* ====== Helpers ====== */
+const $ = id => document.getElementById(id);
+const shuffle = arr => arr.slice().sort(() => Math.random() - 0.5);
 
-const DATA = [];
-const CAT = ["Trending","Vlogs","Tutorials","Music"];
+/* Tiny CSV parser that respects quoted fields (commas/newlines inside quotes) */
+function parseCSV(text){
+  const rows = [];
+  let i = 0, cur = [], val = "", inQ = false;
 
-for(let i=0;i<51;i++){
-  DATA.push({
-    id: "clip-"+String(i+1).padStart(2,"0"),
-    title: TITLES[i],
-    dur: ["00:59","01:14","02:08","03:27","04:12","05:44","06:10","07:39"][i%8],
-    cat: CAT[i%4],
-    thumb: `https://picsum.photos/seed/clip${i}/400/225`,
-    yt: `https://www.youtube.com/embed/${YT_IDS[i]}`,
-    desc: "Description: " + TITLES[i]
-  });
+  const push = () => { cur.push(val); val = ""; };
+  const endRow = () => { cur.push(val); rows.push(cur); cur = []; val = ""; };
+
+  while(i < text.length){
+    const ch = text[i];
+
+    if(inQ){
+      if(ch === '"'){
+        if(text[i+1] === '"'){ val += '"'; i += 2; continue; } // escaped quote
+        inQ = false; i++; continue;
+      }
+      val += ch; i++; continue;
+    }
+
+    if(ch === '"'){ inQ = true; i++; continue; }
+    if(ch === ','){ push(); i++; continue; }
+    if(ch === '\r'){ i++; continue; }
+    if(ch === '\n'){ endRow(); i++; continue; }
+
+    val += ch; i++;
+  }
+  // last value
+  if(val.length || cur.length) endRow();
+  return rows;
 }
 
-/* ---------- Helpers ---------- */
-const $ = id => document.getElementById(id);
-const shuffle = arr => arr.slice().sort(()=>Math.random()-0.5);
+/* ====== Load from Google Sheet ====== */
+function loadSheet(){
+  fetch(SHEET_URL)
+    .then(r => r.text())
+    .then(csv => {
+      const rows = parseCSV(csv);
+      if(!rows.length) return;
 
-/* ---------- Render Cards ---------- */
+      // First row = headers: title, thumb, yt, dur, cat, desc
+      const hdr = rows[0].map(h => (h||"").trim().toLowerCase());
+      const idx = name => hdr.indexOf(name);
+
+      const ititle = idx("title");
+      const ithumb = idx("thumb");
+      const iyt    = idx("yt");
+      const idur   = idx("dur");
+      const icat   = idx("cat");
+      const idesc  = idx("desc");
+
+      DATA = rows.slice(1).map((r, i) => {
+        const title = (r[ititle] || `Video ${i+1}`).trim();
+        const thumb = (r[ithumb] || "").trim();
+        const yt    = (r[iyt]    || "").trim();
+        const dur   = (r[idur]   || "00:00").trim();
+        const cat   = (r[icat]   || "Trending").trim();
+        const desc  = (r[idesc]  || "").trim();
+        const id    = title.toLowerCase().replace(/\s+/g,"-").replace(/[^a-z0-9\-]/g,"");
+
+        return { id, title, thumb, yt, dur, cat, desc };
+      }).filter(v => v.yt); // must have a playable link
+
+      initializeSite();
+    })
+    .catch(err => {
+      console.error("Sheet load error:", err);
+      // Fallback: empty DATA; still init so page doesn't break
+      initializeSite();
+    });
+}
+loadSheet();
+
+/* ====== Card Renderer with interval Ads ====== */
 function renderCards(grid, list){
   const box = $(grid), tpl = $("cardTpl");
   if(!box || !tpl) return;
+
   box.innerHTML = "";
-  list.forEach(v=>{
-    const n = tpl.content.cloneNode(true);
-    const img = n.querySelector("img");
-    img.src = v.thumb;
-    img.onload = () => img.classList.add("loaded");
-    n.querySelector(".dur").textContent = v.dur;
-    n.querySelector(".title").textContent = v.title;
-    n.querySelector(".title").href = `watch.html?id=${v.id}`;
-    n.querySelector(".thumb a").href = `watch.html?id=${v.id}`;
-    box.appendChild(n);
+
+  const isMobile = window.innerWidth < 768;
+  const interval = isMobile ? 6 : 8; // Mobile=6, Desktop=8
+
+  list.forEach((v, i) => {
+    const node = tpl.content.cloneNode(true);
+
+    // Image
+    const img = node.querySelector("img");
+    if(img){
+      img.referrerPolicy = "no-referrer";
+      img.src = v.thumb || `https://picsum.photos/seed/${encodeURIComponent(v.title||("v"+i))}/400/225`;
+      img.onerror = () => {
+        img.src = `https://picsum.photos/seed/${encodeURIComponent(v.title||("v"+i))}/400/225`;
+      };
+    }
+
+    // Text + Links
+    node.querySelector(".dur").textContent = v.dur || "00:00";
+    node.querySelector(".title").textContent = v.title || "Untitled";
+    node.querySelector(".title").href = `watch.html?id=${encodeURIComponent(v.id)}`;
+    node.querySelector(".thumb a").href  = `watch.html?id=${encodeURIComponent(v.id)}`;
+
+    box.appendChild(node);
+
+    // Insert full-width ad after N items
+    if((i+1) % interval === 0){
+      const ad = document.createElement("div");
+      ad.className = "ad-wide";
+      ad.textContent = "AD SPACE";
+      box.appendChild(ad);
+    }
   });
 }
 
-/* ---------- HOME PAGE ---------- */
-if($("latestGrid")) renderCards("latestGrid", DATA.slice(0,12));
-if($("randomGrid") && !location.pathname.includes("watch"))
-  renderCards("randomGrid", shuffle(DATA).slice(0,12));
+/* ====== Page Init (after DATA ready) ====== */
+function initializeSite(){
 
-/* ---------- CATEGORY PAGE ---------- */
-if(location.pathname.includes("category.html")){
-  const c = new URLSearchParams(location.search).get("cat");
-  $("catName").textContent = c;
-  renderCards("catGrid", DATA.filter(v=>v.cat===c));
+  /* HOME */
+  if($("latestGrid")) renderCards("latestGrid", DATA.slice(0, 12));
+  if($("randomGrid") && !location.pathname.includes("watch"))
+    renderCards("randomGrid", shuffle(DATA).slice(0, 12));
+
+  /* CATEGORY */
+  if(location.pathname.includes("category.html")){
+    const c = new URLSearchParams(location.search).get("cat") || "";
+    $("catName").textContent = c;
+    renderCards("catGrid", DATA.filter(v => (v.cat || "").toLowerCase() === c.toLowerCase()));
+  }
+
+  /* WATCH */
+  if(location.pathname.includes("watch.html")){
+    const id = new URLSearchParams(location.search).get("id");
+    const v  = DATA.find(x => x.id === id);
+
+    if(!v){
+      if($("videoTitle")) $("videoTitle").textContent = "Not found";
+      if($("videoDesc"))  $("videoDesc").textContent  = "";
+      const pb = document.getElementById("playerBox");
+      if(pb) pb.innerHTML = `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:#000;border:0">Not Found</div>`;
+      return;
+    }
+
+    if($("videoTitle")) $("videoTitle").textContent = v.title || "Untitled";
+    if($("videoDesc"))  $("videoDesc").textContent  = v.desc || "";
+
+    const box = document.getElementById("playerBox");
+    if(box){
+      const src = (v.yt || "").trim();
+      const safe = encodeURI(src);
+
+      // If direct file (mp4/webm/ogg) → native <video>, else <iframe>
+      if(/\.(mp4|webm|ogg)(\?.*)?$/i.test(safe)){
+        box.innerHTML = `
+          <video controls playsinline preload="metadata" poster="${v.thumb ? encodeURI(v.thumb) : ""}"
+                 style="width:100%;height:100%;display:block;object-fit:contain;background:#000;border:0">
+            <source src="${safe}" type="video/mp4">
+          </video>
+        `;
+      } else {
+        const iframeSrc = safe.replace("www.youtube.com","www.youtube-nocookie.com");
+        box.innerHTML = `
+          <iframe
+            src="${iframeSrc}"
+            referrerpolicy="no-referrer"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+            allowfullscreen
+            style="width:100%;height:100%;border:0;display:block;background:#000">
+          </iframe>
+        `;
+      }
+    }
+
+    // Grids
+    renderCards("relatedGrid", shuffle(DATA.filter(x => x.cat === v.cat && x.id !== v.id)).slice(0, 12));
+    renderCards("randomGrid",  shuffle(DATA).slice(0, 12));
+  }
+
+  // Restore search if present in URL
+  const initialQ = new URLSearchParams(location.search).get("search");
+  if(initialQ && $("searchInput")){
+    $("searchInput").value = initialQ;
+    applySearch(); // will re-render latestGrid/catGrid with filtered results
+  }
 }
 
-/* ---------- WATCH PAGE ---------- */
-if(location.pathname.includes("watch.html")){
-  const id = new URLSearchParams(location.search).get("id");
-  const v = DATA.find(x=>x.id===id);
-
-  $("videoTitle").textContent = v.title;
-  $("videoDesc").textContent = v.desc;
-  $("mainFrame").src = v.yt.replace("www.youtube.com","www.youtube-nocookie.com");
-
-  renderCards("relatedGrid", shuffle(DATA.filter(x=>x.cat===v.cat && x.id!==v.id)).slice(0,12));
-  renderCards("randomGrid", shuffle(DATA).slice(0,12));
-}
-
-/* ---------- SEARCH WITH URL UPDATE ---------- */
+/* ====== SEARCH with URL update ====== */
 function applySearch(){
   const q = $("searchInput")?.value?.toLowerCase().trim() || "";
 
@@ -98,23 +202,21 @@ function applySearch(){
   else url.searchParams.delete("search");
   history.replaceState({}, "", url);
 
-  const results = q ? DATA.filter(v=>v.title.toLowerCase().includes(q)) : DATA.slice(0,12);
+  const results = q
+    ? DATA.filter(v => (v.title || "").toLowerCase().includes(q))
+    : DATA.slice(0, 12);
 
   if($("latestGrid")) renderCards("latestGrid", results);
   if($("catGrid")){
-    const c = new URLSearchParams(location.search).get("cat");
-    renderCards("catGrid", results.filter(v=>v.cat===c));
+    const c = new URLSearchParams(location.search).get("cat") || "";
+    renderCards("catGrid", results.filter(v => (v.cat || "").toLowerCase() === c.toLowerCase()));
   }
 }
 
 $("searchBtn")?.addEventListener("click", applySearch);
-$("searchInput")?.addEventListener("keyup", e=>{ if(e.key==="Enter") applySearch(); });
+$("searchInput")?.addEventListener("keyup", e => { if(e.key === "Enter") applySearch(); });
 
-const initialSearch = new URLSearchParams(location.search).get("search");
-if(initialSearch){
-  $("searchInput").value = initialSearch;
-  applySearch();
-}
-
-/* ---------- TO TOP BUTTON ---------- */
-document.querySelector(".to-top")?.addEventListener("click",()=>window.scrollTo({top:0,behavior:"smooth"}));
+/* ====== To-Top ====== */
+document.querySelector(".to-top")?.addEventListener("click", () =>
+  window.scrollTo({ top: 0, behavior: "smooth" })
+);
