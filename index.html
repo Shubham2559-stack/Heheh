@@ -13,7 +13,11 @@
 
 <header class="topbar">
   <div class="wrap">
-    <div class="brand"><span class="dot"></span><h1>ClipHub</h1></div>
+    <div class="brand">
+      <span class="dot"></span>
+      <h1>ClipHub</h1>
+    </div>
+
     <nav class="primary-nav">
       <ul class="nav-list">
         <li><a href="category.html?cat=Trending">Trending</a></li>
@@ -22,6 +26,7 @@
         <li><a href="category.html?cat=Music">Music</a></li>
       </ul>
     </nav>
+
   </div>
 </header>
 
@@ -32,24 +37,13 @@
   </div>
 </section>
 
-<section class="wrap">
-  <div class="notice">
-    <span class="warn">⚠</span> Bookmark: cliphub.example
-  </div>
-</section>
-
 <section class="wrap section">
-  <div class="section-head"><h2 class="bar-title">Latest videos</h2></div>
+  <h2 class="bar-title">Latest Videos</h2>
   <div class="grid" id="latestGrid"></div>
 </section>
 
 <section class="wrap section">
-  <h3 class="bar-title sm">About</h3>
-  <p class="muted">ClipHub demo layout. All content is placeholder and safe.</p>
-</section>
-
-<section class="wrap section">
-  <div class="section-head"><h2 class="bar-title">Random videos</h2></div>
+  <h2 class="bar-title">Random Videos</h2>
   <div class="grid" id="randomGrid"></div>
 </section>
 
@@ -61,13 +55,14 @@
 
 <button class="to-top">↑</button>
 
+<!-- CARD TEMPLATE -->
 <template id="cardTpl">
 <article class="card">
   <div class="thumb">
-    <a href="#"><img loading="lazy" src="" alt=""></a>
-    <span class="badge">▶ <b class="dur">00:00</b></span>
+    <a href="#"><img loading="lazy" referrerpolicy="no-referrer" src="" alt=""></a>
+    <span class="badge"><b class="dur"></b></span>
   </div>
-  <a class="title" href="#">Clip</a>
+  <a class="title" href="#"></a>
 </article>
 </template>
 
